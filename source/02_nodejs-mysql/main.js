@@ -25,29 +25,38 @@ const app = http.createServer(function(request, response) {
     if(pathname === '/') {
         if(queryData.id === undefined) {
             db.query(`SELECT * FROM topic`, function(error, topics) {
-                console.log(topics);
+                const title = 'Welcome';
+                const description = 'Hello, Node.js';
+                const list = template.list(topics);
+                const html = template.HTML(title, list,
+                    `<h2>${title}</h2>${description}`,
+                    `<a href="/create">create</a>`
+                    );
                 response.writeHead(200);
-                response.end('Success');
+                response.end(html);
             });
         } else {
-            fs.readdir('./data', function(error, filelist) {
-                const filteredId = path.parse(queryData.id).base;
-                fs.readFile(`data/${filteredId}`, 'utf8', function(err, description) {
-                    const title = queryData.id;
-                    const sanitizedTitle = sanitizeHtml(title);
-                    const sanitizedDescription = sanitizeHtml(description, {
-                        allowedTags:['h1']
-                    });
-                    const list = template.list(filelist);
-                    const html = template.HTML(sanitizedTitle, list,
-                        `<h2>${sanitizedTitle}</h2><p>${sanitizedDescription}</p>`,
+            db.query(`SELECT * FROM topic`, function(error, topics) {
+                if(error) {
+                    throw error;
+                }
+                db.query(`SELECT * FROM topic WHERE id=?`, [queryData.id], function(error2, topic) {
+                    if(error2) {
+                        throw error2;
+                    }
+                    const title = topic[0].title;
+                    const description = topic[0].description;
+                    const list = template.list(topics);
+                    const html = template.HTML(title, list,
+                        `<h2>${title}</h2>${description}`,
                         `<a href="/create">create</a>
-                        <a href="/update?id=${sanitizedTitle}">update</a>
-                        <form action="delete_process" method="post">
-                            <input type="hidden" name="id" value="${sanitizedTitle}">
-                            <input type="submit" value="delete">
-                        </form>`
-                    );
+                            <a href="/update?id=${queryData.id}">update</a>
+                            <form action="delete_process" method="post">
+                                <input type="hidden" name="id" value="${queryData.id}>
+                                <textarea name="description"></textarea>
+                                <input type="submit">
+                            </form>`
+                        );
                     response.writeHead(200);
                     response.end(html);
                 });
