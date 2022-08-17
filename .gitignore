@@ -1,2 +1,3 @@
 source/02_nodejs-mysql-fin/
 node_modules/
+.DS_Store
