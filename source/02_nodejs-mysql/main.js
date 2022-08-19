@@ -1,21 +1,9 @@
 console.log('Hello no deamon');
 const http = require('http');
-const fs = require('fs');
 const url = require('url');
 const qs = require('querystring');
 const template = require('./lib/template.js');
-const path = require('path');
-const sanitizeHtml = require('sanitize-html');
-const mysql = require('mysql');
-
-const db = mysql.createConnection({
-    host     : 'localhost',
-    user     : 'root',
-    password : '996599',
-    database : 'opentutorials'
-  });
-
-db.connect();
+const db = require('./lib/db.js');
 
 const app = http.createServer(function(request, response) {
     const _url = request.url;
@@ -44,7 +32,6 @@ const app = http.createServer(function(request, response) {
                     if(error2) {
                         throw error2;
                     }
-                    console.log(topic);
                     const title = topic[0].title;
                     const description = topic[0].description;
                     const list = template.list(topics);
@@ -65,23 +52,28 @@ const app = http.createServer(function(request, response) {
         }
     } else if(pathname === '/create') {
         db.query(`SELECT * FROM topic`, function(error, topics) {
-            const title = 'Create';
-            const list = template.list(topics);
-            const html = template.HTML(title, list, `
-                <form action="/create_process" method="post">
-                    <p><input type="text" name="title" placeholder="title"></p>
-                    <p>
-                        <textarea name="description" placeholder="description"></textarea>
-                    </p>
-                    <p>
-                        <input type="submit">
-                    </p>
-                </form>
-                `,
-                `<a href="/create">create</a>`
-            );
-            response.writeHead(200);
-            response.end(html);
+            db.query('SELECT * FROM author', function(error2, authors) {
+                const title = 'Create';
+                const list = template.list(topics);
+                const html = template.HTML(title, list, `
+                    <form action="/create_process" method="post">
+                        <p><input type="text" name="title" placeholder="title"></p>
+                        <p>
+                            <textarea name="description" placeholder="description"></textarea>
+                        </p>
+                        <p>
+                            ${template.authorSelect(authors)}
+                        </p>
+                        <p>
+                            <input type="submit">
+                        </p>
+                    </form>
+                    `,
+                    `<a href="/create">create</a>`
+                );
+                response.writeHead(200);
+                response.end(html);
+            })
         });
     } else if(pathname === '/create_process') {
         let body = '';
@@ -91,7 +83,7 @@ const app = http.createServer(function(request, response) {
         request.on('end', function() {
             const post = qs.parse(body);
             db.query(`INSERT INTO topic (title, description, created, author_id) VALUES(?, ?, NOW(), ?)`,
-                [post.title, post.description, 1],
+                [post.title, post.description, post.author],
                 function(error, result) {
                     if(error) {
                         throw error;
@@ -110,24 +102,29 @@ const app = http.createServer(function(request, response) {
                 if(error2) {
                     throw error2;
                 }
-                const list = template.list(topics);
-                const html = template.HTML(topic[0].title, list,
-                    `
-                    <form action="/update_process" method="post">
-                        <input type="hidden" name="id" value="${topic[0].id}">
-                        <p><input type="text" name="title" placeholder="title" value="${topic[0].title}"></p>
-                        <p>
-                            <textarea name="description" placeholder="description">${topic[0].description}</textarea>
-                        </p>
-                        <p>
-                            <input type="submit">
-                        </p>
-                    </form>
-                    `,
-                    `<a href="/create">create</a> <a href="/update?id=${topic[0].title}">update</a>`
-                );
-                response.writeHead(200);
-                response.end(html);
+                db.query('SELECT * FROM author', function(error2, authors) {
+                    const list = template.list(topics);
+                    const html = template.HTML(topic[0].title, list,
+                        `
+                        <form action="/update_process" method="post">
+                            <input type="hidden" name="id" value="${topic[0].id}">
+                            <p><input type="text" name="title" placeholder="title" value="${topic[0].title}"></p>
+                            <p>
+                                <textarea name="description" placeholder="description">${topic[0].description}</textarea>
+                            </p>
+                            <p>
+                                ${template.authorSelect(authors, topic[0].author_id)}
+                            </p>
+                            <p>
+                                <input type="submit">
+                            </p>
+                        </form>
+                        `,
+                        `<a href="/create">create</a> <a href="/update?id=${topic[0].title}">update</a>`
+                    );
+                    response.writeHead(200);
+                    response.end(html);
+                });
             });
         });
     } else if(pathname === '/update_process') {
@@ -137,8 +134,8 @@ const app = http.createServer(function(request, response) {
         });
         request.on('end', function() {
             const post = qs.parse(body);
-            db.query('UPDATE topic SET title=?, description=?, author_id=1 WHERE id=?',
-                [post.title, post.description, post.id], function(error, result) {
+            db.query('UPDATE topic SET title=?, description=?, author_id=? WHERE id=?',
+                [post.title, post.description, post.author, post.id], function(error, result) {
                 response.writeHead(302, {Location: `/?id=${post.id}`});
                 response.end();
             });
