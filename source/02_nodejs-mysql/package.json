@@ -21,6 +21,7 @@
   "homepage": "https://github.com/wikibook/nodejs#readme",
   "dependencies": {
     "mysql": "2.18.1",
-    "sanitize-html": "2.7.1"
+    "sanitize-html": "2.7.1",
+    "url-search-params": "1.1.0"
   }
 }
