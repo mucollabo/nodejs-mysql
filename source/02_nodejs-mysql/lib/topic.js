@@ -2,14 +2,15 @@ const db = require('./db');
 const template = require('./template');
 const url = require('url'); 
 const URLSearchParams = require('url-search-params');
+const sanitizeHtml = require('sanitize-html');
 
 exports.home = (request, response) => {
     db.query(`SELECT * FROM topic`, (error, topics) => {
         const title = 'Welcome';
         const description = 'Hello, Node.js';
         const list = template.list(topics);
-        const html = template.HTML(title, list,
-            `<h2>${title}</h2>${description}`,
+        const html = template.HTML(sanitizeHtml(title), sanitizeHtml(list),
+            `<h2>${sanitizeHtml(title)}</h2>${sanitizeHtml(description)}`,
             `<a href="/create">create</a>`
             );
             response.writeHead(200);
@@ -31,10 +32,10 @@ exports.page = (request,response) => {
             const title = topic[0].title;
             const description = topic[0].description;
             const list = template.list(topics);
-            const html = template.HTML(title, list,
-                `<h2>${title}</h2>
-                ${description}
-                <p>by ${topic[0].name}</p>`,
+            const html = template.HTML(sanitizeHtml(title), sanitizeHtml(list),
+                `<h2>${sanitizeHtml(title)}</h2>
+                ${sanitizeHtml(description)}
+                <p>by ${sanitizeHtml(topic[0].name)}</p>`,
                 `<a href="/create">create</a>
                     <a href="/update?id=${queryData.id}">update</a>
                     <form action="delete_process" method="post">
@@ -53,7 +54,7 @@ exports.create = (request, response) => {
         db.query('SELECT * FROM author', (error2, authors) => {
             const title = 'Create';
             const list = template.list(topics);
-            const html = template.HTML(title, list, `
+            const html = template.HTML(sanitizeHtml(title), sanitizeHtml(list), `
                 <form action="/create_process" method="post">
                     <p><input type="text" name="title" placeholder="title"></p>
                     <p>
@@ -108,13 +109,13 @@ exports.update = (request, response) => {
             }
             db.query('SELECT * FROM author', (error2, authors) => {
                 const list = template.list(topics);
-                const html = template.HTML(topic[0].title, list,
+                const html = template.HTML(sanitizeHtml(topic[0].title), list,
                     `
                     <form action="/update_process" method="post">
                         <input type="hidden" name="id" value="${topic[0].id}">
-                        <p><input type="text" name="title" placeholder="title" value="${topic[0].title}"></p>
+                        <p><input type="text" name="title" placeholder="title" value="${sanitizeHtml(topic[0].title)}"></p>
                         <p>
-                            <textarea name="description" placeholder="description">${topic[0].description}</textarea>
+                            <textarea name="description" placeholder="description">${sanitizeHtml(topic[0].description)}</textarea>
                         </p>
                         <p>
                             ${template.authorSelect(authors, topic[0].author_id)}
