@@ -1,6 +1,6 @@
 const db = require('./db');
 const template = require('./template');
-const url = require('url');
+const url = require('url'); 
 const URLSearchParams = require('url-search-params');
 
 exports.home = (request, response) => {
@@ -63,7 +63,7 @@ exports.create = (request, response) => {
                         ${template.authorSelect(authors)}
                     </p>
                     <p>
-                        <input type="submit">
+                        <input type="submit" value="create">
                     </p>
                 </form>
                 `,
@@ -74,6 +74,7 @@ exports.create = (request, response) => {
         })
     });
 }
+
 exports.create_process = (request, response) => {
     let body = '';
         request.on('data', (data) => {
@@ -82,8 +83,8 @@ exports.create_process = (request, response) => {
         request.on('end', () => {
             const post = new URLSearchParams(body);
             db.query(`INSERT INTO topic (title, description, created, author_id) VALUES(?, ?, NOW(), ?)`,
-                [post.title, post.description, post.author],
-                function(error, result) {
+                [post.get('title'), post.get('description'), post.get('author')],
+                (error, result) => {
                     if(error) {
                         throw error;
                     }
@@ -140,8 +141,8 @@ exports.update_process = (request, response) => {
         request.on('end', () => {
             const post = new URLSearchParams(body);
             db.query('UPDATE topic SET title=?, description=?, author_id=? WHERE id=?',
-                [post.title, post.description, post.author, post.id], function(error, result) {
-                response.writeHead(302, {Location: `/?id=${post.id}`});
+                [post.get('title'), post.get('description'), post.get('author'), post.get('id')], (error, result) => {
+                response.writeHead(302, {Location: `/?id=${post.get('id')}`});
                 response.end();
             });
         });
@@ -154,7 +155,7 @@ exports.delete_process = (request, response) => {
         });
         request.on('end', () => {
             const post = new URLSearchParams(body);
-            db.query('DELETE FROM topic WHERE id=?', [post.get('id')], function(error, result) {
+            db.query('DELETE FROM topic WHERE id=?', [post.get('id')], (error, result) => {
                 if(error) {
                     throw error;
                 }
